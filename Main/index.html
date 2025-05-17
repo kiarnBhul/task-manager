@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-tasks"></i>
+                    <span>Task Manager</span>
+                </div>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="menu-item active">
+                    <a href="#">
+                        <i class="fas fa-list"></i>
+                        <span>All Tasks</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-right">
+                    <label class="theme-toggle">
+                        <input type="checkbox" id="themeSwitch">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-container">
+                <h1 class="page-title">Task Dashboard</h1>
+                
+                <!-- Stats Cards -->
+                <div class="stat-cards">
+                    <div class="stat-card">
+                        <div class="stat-data">
+                            <h3>0</h3>
+                            <p>Pending Tasks</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-data">
+                            <h3>0</h3>
+                            <p>In Progress</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-spinner"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-data">
+                            <h3>0</h3>
+                            <p>Completed</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-data">
+                            <h3>0</h3>
+                            <p>Overdue</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task Management Section -->
+                <div class="activity-container single-column">
+                    <div class="activity-card">
+                        <div class="search-container">
+                            <div class="search-bar">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search tasks...">
+                            </div>
+                        </div>
+                        <div class="activity-header">
+                            <h2 class="chart-title">Today's Tasks</h2>
+                            <button id="addTaskBtn" class="btn-primary">
+                                <i class="fas fa-plus"></i> Add Task
+                            </button>
+                        </div>
+                        <ul class="activity-list" id="todayTasksList">
+                            <!-- Tasks will be added here dynamically -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
