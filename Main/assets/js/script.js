@@ -40,9 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Add priority filter UI
-    addPriorityFilter();
-
+    // Priority filter removed as requested
+    
     // Setup advanced filters
     setupAdvancedFilters();
 
@@ -710,7 +709,7 @@ function showAddTaskModal() {
         document.body.appendChild(modalContainer.firstElementChild);
         
         // Add event listeners for modal
-        document.querySelector('.close-modal').addEventListener('click', function() {
+        document.querySelector('#addTaskModal .close-modal').addEventListener('click', function() {
             closeModalWithAnimation(document.getElementById('addTaskModal'));
         });
         
@@ -859,51 +858,10 @@ function updateTaskStats() {
     }
 }
 
-// Add priority filter UI
-function addPriorityFilter() {
-    // Create filter container if it doesn't exist
-    if (!document.querySelector('.priority-filter')) {
-        const filterHTML = `
-            <div class="priority-filter">
-                <label class="filter-label">Filter by Priority:</label>
-                <div class="filter-options">
-                    <button class="filter-option active" data-priority="all">All</button>
-                    <button class="filter-option" data-priority="Normal">Low</button>
-                    <button class="filter-option" data-priority="Important">Medium</button>
-                    <button class="filter-option" data-priority="Urgent">High</button>
-                </div>
-            </div>
-        `;
-        
-        // Find search container to append after it
-        const searchContainer = document.querySelector('.search-container');
-        if (searchContainer) {
-            searchContainer.insertAdjacentHTML('afterend', filterHTML);
-            
-            // Add event listeners to filter buttons
-            const filterButtons = document.querySelectorAll('.filter-option');
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    
-                    // Add active class to clicked button
-                    this.classList.add('active');
-                    
-                    // Apply filter
-                    const priority = this.dataset.priority;
-                    const searchValue = document.querySelector('.search-container input').value.toLowerCase().trim();
-                    filterTasks(searchValue, priority);
-                });
-            });
-        }
-    }
-}
-
 // Get current priority filter
 function getCurrentPriorityFilter() {
-    const activeFilterButton = document.querySelector('.filter-option.active');
-    return activeFilterButton ? activeFilterButton.dataset.priority : 'all';
+    // Always return 'all' since we removed the priority filter UI
+    return 'all';
 }
 
 // Filter tasks based on search input and priority
@@ -1102,14 +1060,6 @@ function filterTasksByStatus(status) {
     
     // Render filtered tasks
     renderTasks(filteredTasks);
-    
-    // Reset priority filters to "All"
-    const allFilterBtn = document.querySelector('.filter-option[data-priority="all"]');
-    if (allFilterBtn) {
-        const filterButtons = document.querySelectorAll('.filter-option');
-        filterButtons.forEach(btn => btn.classList.remove('active'));
-        allFilterBtn.classList.add('active');
-    }
     
     // Update filter results count
     updateFilterResultsCount(filteredTasks.length, tasks.length);
