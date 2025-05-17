@@ -86,8 +86,46 @@ function initializeTasks() {
         renderTasks(tasks);
     }
     
+    // Remove task summary section if it exists
+    removeSummarySection();
+    
     // Update task stats even if empty
     updateTaskStats();
+    
+    // Initialize task category navigation
+    initTaskCategoryNavigation();
+    
+    // Add category heading if not exists
+    if (!document.getElementById('taskCategoryHeading')) {
+        const todayTasksHeading = document.querySelector('h2');
+        if (todayTasksHeading && todayTasksHeading.textContent.includes('Tasks')) {
+            todayTasksHeading.id = 'taskCategoryHeading';
+        } else {
+            // Create category heading if it doesn't exist
+            const tasksContainer = document.querySelector('.activity-card');
+            if (tasksContainer && !document.getElementById('taskCategoryHeading')) {
+                const headingElement = document.createElement('h2');
+                headingElement.id = 'taskCategoryHeading';
+                headingElement.className = 'section-heading';
+                headingElement.textContent = 'All Tasks';
+                
+                // Insert at the beginning of the container
+                if (tasksContainer.firstChild) {
+                    tasksContainer.insertBefore(headingElement, tasksContainer.firstChild);
+                } else {
+                    tasksContainer.appendChild(headingElement);
+                }
+            }
+        }
+    }
+}
+
+// Remove task summary section if it exists
+function removeSummarySection() {
+    const summarySection = document.getElementById('taskSummarySection');
+    if (summarySection) {
+        summarySection.remove();
+    }
 }
 
 // Render tasks to the appropriate lists
@@ -591,31 +629,34 @@ function addNewTask(title, dueDate, priority, description, progress) {
 
 // Update task statistics
 function updateTaskStats() {
-    // Count from DOM
-    const totalTasks = document.querySelectorAll('.task-item').length;
-    const completedTasks = document.querySelectorAll('.task-checkbox.checked').length;
-    const pendingTasks = totalTasks - completedTasks;
-    
-    // Get tasks from storage for more detailed stats
+    // Get tasks from storage for detailed stats
     const savedTasks = localStorage.getItem('tasks');
     const tasks = savedTasks ? JSON.parse(savedTasks) : [];
     
-    // Count in-progress tasks (tasks with a specific tag or status)
-    const inProgressTasks = tasks.filter(task => 
-        !task.completed && task.tags && task.tags.includes('In Progress')).length;
-    
-    // Count overdue tasks
+    // Count tasks by status
     const now = new Date();
+    const allTasks = tasks.length;
+    const pendingTasks = tasks.filter(task => !task.completed).length;
+    const completedTasks = tasks.filter(task => task.completed).length;
     const overdueTasks = tasks.filter(task => 
         !task.completed && new Date(task.dueDate) < now).length;
     
     // Update stats in cards
     const statCards = document.querySelectorAll('.stat-card .stat-data h3');
     if (statCards.length >= 4) {
-        statCards[0].textContent = pendingTasks; // Pending Tasks
-        statCards[1].textContent = inProgressTasks; // In Progress
-        statCards[2].textContent = completedTasks; // Completed Tasks
-        statCards[3].textContent = overdueTasks; // Overdue
+        statCards[0].textContent = allTasks; // All Tasks
+        statCards[1].textContent = pendingTasks; // Pending Tasks
+        statCards[2].textContent = completedTasks; // Complete Tasks
+        statCards[3].textContent = overdueTasks; // Overdue Tasks
+    }
+    
+    // Update stat card labels if needed
+    const statLabels = document.querySelectorAll('.stat-card .stat-data p');
+    if (statLabels.length >= 4) {
+        statLabels[0].textContent = 'All Tasks';
+        statLabels[1].textContent = 'Pending Tasks';
+        statLabels[2].textContent = 'Complete Tasks';
+        statLabels[3].textContent = 'Overdue Tasks';
     }
 }
 
@@ -743,4 +784,117 @@ function deleteTasksByTitle(titlesToDelete) {
     
     // Update task count stats
     updateTaskStats();
+}
+
+// Make dashboard cards clickable to filter tasks
+function initTaskCategoryNavigation() {
+    // Add click event to All Tasks sidebar item
+    const allTasksLink = document.querySelector('.menu-item a[href="#all-tasks"]');
+    if (allTasksLink) {
+        allTasksLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            filterTasksByStatus('all');
+            updateActiveCategoryLink(this);
+        });
+    }
+
+    // Add click events to stats cards
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach((card, index) => {
+        card.style.cursor = 'pointer';
+        
+        card.addEventListener('click', function() {
+            let status;
+            
+            // Map index to status
+            switch(index) {
+                case 0: // First card - All Tasks
+                    status = 'all';
+                    break;
+                case 1: // Second card - Pending Tasks
+                    status = 'pending';
+                    break;
+                case 2: // Third card - Complete Tasks
+                    status = 'completed';
+                    break;
+                case 3: // Fourth card - Overdue Tasks
+                    status = 'overdue';
+                    break;
+            }
+            
+            if (status) {
+                filterTasksByStatus(status);
+                
+                // Update active link in sidebar if exists
+                const sidebarLink = document.querySelector(`.menu-item a[href="#${status}-tasks"]`);
+                if (sidebarLink) {
+                    updateActiveCategoryLink(sidebarLink);
+                }
+            }
+        });
+    });
+}
+
+// Update active category link in sidebar
+function updateActiveCategoryLink(activeLink) {
+    // Remove active class from all menu items
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(item => item.classList.remove('active'));
+    
+    // Add active class to the parent menu item
+    if (activeLink) {
+        const menuItem = activeLink.closest('.menu-item');
+        if (menuItem) {
+            menuItem.classList.add('active');
+        }
+    }
+}
+
+// Filter tasks by status
+function filterTasksByStatus(status) {
+    // Get tasks from storage
+    const savedTasks = localStorage.getItem('tasks');
+    const tasks = savedTasks ? JSON.parse(savedTasks) : [];
+    const now = new Date();
+    
+    let filteredTasks;
+    let statusLabel;
+    
+    switch (status) {
+        case 'pending':
+            filteredTasks = tasks.filter(task => !task.completed);
+            statusLabel = 'Pending Tasks';
+            break;
+        case 'completed':
+            filteredTasks = tasks.filter(task => task.completed);
+            statusLabel = 'Complete Tasks';
+            break;
+        case 'overdue':
+            filteredTasks = tasks.filter(task => !task.completed && new Date(task.dueDate) < now);
+            statusLabel = 'Overdue Tasks';
+            break;
+        default:
+            filteredTasks = tasks;
+            statusLabel = 'All Tasks';
+    }
+    
+    // Update category heading
+    const categoryHeading = document.getElementById('taskCategoryHeading');
+    if (categoryHeading) {
+        categoryHeading.textContent = statusLabel;
+    }
+    
+    // Render filtered tasks
+    renderTasks(filteredTasks);
+    
+    // Reset priority filters to "All"
+    const allFilterBtn = document.querySelector('.filter-option[data-priority="all"]');
+    if (allFilterBtn) {
+        const filterButtons = document.querySelectorAll('.filter-option');
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        allFilterBtn.classList.add('active');
+    }
+    
+    // Update filter results count
+    updateFilterResultsCount(filteredTasks.length, tasks.length);
 } 
