@@ -1189,4 +1189,167 @@ input:checked + .slider:before {
     font-size: 0.85rem;
     color: var(--text-secondary);
     font-style: italic;
+}
+
+/* Toast Notification */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+}
+
+.toast {
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    background-color: var(--card-bg);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transform: translateX(120%);
+    opacity: 0;
+    animation: slideIn 0.3s forwards, fadeOut 0.5s 3s forwards;
+    border-left: 4px solid var(--primary);
+    max-width: 100%;
+}
+
+@keyframes slideIn {
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast-icon {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+}
+
+.toast-success {
+    border-left-color: var(--success);
+}
+
+.toast-success .toast-icon {
+    background-color: var(--success);
+}
+
+.toast-error {
+    border-left-color: var(--danger);
+}
+
+.toast-error .toast-icon {
+    background-color: var(--danger);
+}
+
+.toast-warning {
+    border-left-color: var(--warning);
+}
+
+.toast-warning .toast-icon {
+    background-color: var(--warning);
+}
+
+.toast-info {
+    border-left-color: var(--info);
+}
+
+.toast-info .toast-icon {
+    background-color: var(--info);
+}
+
+.toast-message {
+    font-size: 0.92rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.toast-close {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding: 5px;
+}
+
+.toast-close:hover {
+    color: var(--danger);
+}
+
+/* Delete Confirmation Modal */
+.delete-modal .modal-content {
+    max-width: 400px;
+}
+
+.delete-modal .modal-body {
+    text-align: center;
+}
+
+.delete-modal .modal-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger);
+    font-size: 2rem;
+}
+
+.delete-modal .modal-message {
+    font-size: 1.1rem;
+    margin-bottom: 25px;
+    color: var(--text-primary);
+}
+
+.delete-modal .task-name {
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.delete-modal .form-actions {
+    justify-content: center;
+    gap: 15px;
+}
+
+.delete-modal .btn-delete {
+    background-color: var(--danger);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: var(--button-border-radius);
+    cursor: pointer;
+    font-size: 0.92rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.delete-modal .btn-delete:hover {
+    background-color: #c62828;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
 } 

@@ -314,14 +314,119 @@ function initTaskActionButtons() {
             const taskId = taskItem.dataset.id;
             const taskTitle = taskItem.querySelector('.task-title').textContent;
             
-            if (confirm(`Are you sure you want to delete task: ${taskTitle}?`)) {
-                deleteTask(taskId);
-                taskItem.remove();
-                // Update task count stats
-                updateTaskStats();
-            }
+            // Show delete confirmation modal instead of browser confirm
+            showDeleteConfirmationModal(taskId, taskTitle);
         });
     });
+}
+
+// Show delete confirmation modal
+function showDeleteConfirmationModal(taskId, taskTitle) {
+    const modal = document.getElementById('deleteTaskModal');
+    const taskNameSpan = document.getElementById('deleteTaskName');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    const cancelBtn = document.getElementById('cancelDeleteBtn');
+    const closeModalBtn = modal.querySelector('.close-modal');
+    
+    // Set the task name in the modal
+    taskNameSpan.textContent = taskTitle;
+    
+    // Show the modal
+    modal.style.display = 'block';
+    
+    // Set up the confirm button action
+    confirmBtn.onclick = function() {
+        deleteTask(taskId);
+        
+        // Remove the task element from DOM
+        const taskElement = document.querySelector(`.task-item[data-id="${taskId}"]`);
+        if (taskElement) {
+            taskElement.remove();
+        }
+        
+        // Update task count stats
+        updateTaskStats();
+        
+        // Close the modal
+        modal.style.display = 'none';
+        
+        // Show success toast
+        showToast('success', `Task "${taskTitle}" deleted successfully`);
+    };
+    
+    // Close modal on cancel button click
+    cancelBtn.onclick = function() {
+        modal.style.display = 'none';
+    };
+    
+    // Close modal on X button click
+    closeModalBtn.onclick = function() {
+        modal.style.display = 'none';
+    };
+    
+    // Close modal when clicking outside the modal content
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+}
+
+// Show toast notification
+function showToast(type, message) {
+    const container = document.getElementById('toastContainer');
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    // Set icon based on type
+    let icon = '';
+    switch(type) {
+        case 'success':
+            icon = 'fa-check';
+            break;
+        case 'error':
+            icon = 'fa-exclamation-circle';
+            break;
+        case 'warning':
+            icon = 'fa-exclamation-triangle';
+            break;
+        case 'info':
+            icon = 'fa-info-circle';
+            break;
+        default:
+            icon = 'fa-bell';
+    }
+    
+    // Set toast content
+    toast.innerHTML = `
+        <div class="toast-content">
+            <div class="toast-icon">
+                <i class="fas ${icon}"></i>
+            </div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <div class="toast-close">
+            <i class="fas fa-times"></i>
+        </div>
+    `;
+    
+    // Add to container
+    container.appendChild(toast);
+    
+    // Add click event to close button
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.addEventListener('click', function() {
+        toast.remove();
+    });
+    
+    // Auto remove after animation completes (4 seconds)
+    setTimeout(() => {
+        if (toast.parentNode === container) {
+            container.removeChild(toast);
+        }
+    }, 4000);
 }
 
 // Edit a task
@@ -459,6 +564,10 @@ function updateTaskProgress(taskId, progress) {
     // Convert progress to number to ensure proper comparison
     const progressValue = parseInt(progress, 10);
     
+    // Find task to get its title for the notification
+    const task = tasks.find(t => t.id === taskId);
+    const taskTitle = task ? task.title : '';
+    
     // Update the task progress and check if it should be marked as completed
     const updatedTasks = tasks.map(task => {
         if (task.id === taskId) {
@@ -482,6 +591,13 @@ function updateTaskProgress(taskId, progress) {
     
     // Update task stats
     updateTaskStats();
+    
+    // Show appropriate toast notification based on progress
+    if (progressValue === 100) {
+        showToast('success', `"${taskTitle}" completed! (100%)`);
+    } else {
+        showToast('info', `"${taskTitle}" progress updated to ${progressValue}%`);
+    }
 }
 
 // Delete a task
@@ -655,6 +771,9 @@ function addNewTask(title, dueDate, priority, description, progress) {
     
     // Update task count stats
     updateTaskStats();
+    
+    // Show success toast notification
+    showToast('success', `Task "${title}" added successfully`);
 }
 
 // Update task statistics
