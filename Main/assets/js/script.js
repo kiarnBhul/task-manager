@@ -129,6 +129,14 @@ function createTaskElement(task) {
         priorityLabel = 'High';
     }
     
+    // Define progress bar class based on completion
+    let progressClass = 'progress-low';
+    if (task.progress >= 70) {
+        progressClass = 'progress-high';
+    } else if (task.progress >= 30) {
+        progressClass = 'progress-medium';
+    }
+    
     taskItem.innerHTML = `
         <div class="task-checkbox ${task.completed ? 'checked' : ''}">
             ${task.completed ? '<i class="fas fa-check"></i>' : ''}
@@ -136,6 +144,12 @@ function createTaskElement(task) {
         <div class="task-content">
             <h3 class="task-title">${task.title}</h3>
             ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
+            <div class="task-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill ${progressClass}" style="width: ${task.progress}%"></div>
+                </div>
+                <span class="progress-text">${task.progress}%</span>
+            </div>
             <div class="task-meta">
                 <span>Due: ${formatDate(task.dueDate)}</span>
                 <span class="priority-badge ${priorityClass}">${priorityLabel}</span>
@@ -145,7 +159,7 @@ function createTaskElement(task) {
             </div>
         </div>
         <div class="task-actions">
-            <button class="task-action-btn"><i class="fas fa-edit"></i></button>
+            <button class="task-action-btn edit-task-btn"><i class="fas fa-edit"></i></button>
             <button class="task-action-btn"><i class="fas fa-trash-alt"></i></button>
         </div>
     `;
@@ -223,7 +237,7 @@ function updateTaskCompletionStatus(taskId, isCompleted) {
 // Initialize task action buttons
 function initTaskActionButtons() {
     // Edit task buttons
-    const editButtons = document.querySelectorAll('.task-action-btn:first-child');
+    const editButtons = document.querySelectorAll('.edit-task-btn');
     editButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -231,6 +245,9 @@ function initTaskActionButtons() {
             const taskId = taskItem.dataset.id;
             editTask(taskId);
         });
+        
+        // Add tooltip to edit button
+        button.setAttribute('title', 'Edit task & update progress');
     });
     
     // Delete task buttons
@@ -262,41 +279,36 @@ function editTask(taskId) {
     const taskToEdit = tasks.find(task => task.id === taskId);
     
     if (taskToEdit) {
-        // Create edit modal HTML if it doesn't exist
-        if (!document.getElementById('editTaskModal')) {
+        // Create a progress-only modal
+        if (!document.getElementById('progressModal')) {
             const modalHTML = `
-                <div id="editTaskModal" class="task-modal">
+                <div id="progressModal" class="task-modal">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h2>Edit Task</h2>
+                            <h2>Update Task Progress</h2>
                             <span class="close-modal">&times;</span>
                         </div>
                         <div class="modal-body">
-                            <form id="editTaskForm">
-                                <input type="hidden" id="editTaskId">
-                                <div class="form-group">
-                                    <label for="editTaskTitle">Task Title</label>
-                                    <input type="text" id="editTaskTitle" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="editTaskDescription">Description</label>
-                                    <textarea id="editTaskDescription"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="editTaskPriority">Priority</label>
-                                    <select id="editTaskPriority">
-                                        <option value="Normal">Low</option>
-                                        <option value="Important">Medium</option>
-                                        <option value="Urgent">High</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="editTaskDueDate">Due Date</label>
-                                    <input type="datetime-local" id="editTaskDueDate">
+                            <form id="progressForm">
+                                <input type="hidden" id="taskIdForProgress">
+                                <div class="task-title-display"></div>
+                                <div class="form-group progress-section">
+                                    <label for="taskProgressOnly">
+                                        <span class="progress-label">Task Progress:</span>
+                                        <span id="progressOnlyValue" class="progress-value">0</span>%
+                                    </label>
+                                    <div class="progress-control">
+                                        <input type="range" id="taskProgressOnly" min="0" max="100" value="0" class="progress-slider">
+                                        <div class="progress-preview">
+                                            <div class="progress-bar">
+                                                <div id="progressOnlyPreview" class="progress-fill" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="form-actions">
-                                    <button type="button" id="cancelEditBtn" class="btn-cancel">Cancel</button>
-                                    <button type="submit" class="btn-primary">Update Task</button>
+                                    <button type="button" id="cancelProgressBtn" class="btn-cancel">Cancel</button>
+                                    <button type="submit" class="btn-primary">Update Progress</button>
                                 </div>
                             </form>
                         </div>
@@ -310,65 +322,91 @@ function editTask(taskId) {
             document.body.appendChild(modalContainer.firstElementChild);
             
             // Add event listeners for modal
-            document.querySelector('#editTaskModal .close-modal').addEventListener('click', closeEditModal);
-            document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
-            document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+            document.querySelector('#progressModal .close-modal').addEventListener('click', closeProgressModal);
+            document.getElementById('cancelProgressBtn').addEventListener('click', closeProgressModal);
+            
+            // Add event listener for progress slider
+            document.getElementById('taskProgressOnly').addEventListener('input', function() {
+                const progressValue = this.value;
+                document.getElementById('progressOnlyValue').textContent = progressValue;
+                
+                // Update preview
+                const preview = document.getElementById('progressOnlyPreview');
+                preview.style.width = progressValue + '%';
+                
+                // Update preview class based on value
+                preview.className = 'progress-fill';
+                if (progressValue >= 70) {
+                    preview.classList.add('progress-high');
+                } else if (progressValue >= 30) {
+                    preview.classList.add('progress-medium');
+                } else {
+                    preview.classList.add('progress-low');
+                }
+            });
+            
+            document.getElementById('progressForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 
-                const id = document.getElementById('editTaskId').value;
-                const title = document.getElementById('editTaskTitle').value;
-                const description = document.getElementById('editTaskDescription').value;
-                const priority = document.getElementById('editTaskPriority').value;
-                const dueDate = document.getElementById('editTaskDueDate').value;
+                const taskId = document.getElementById('taskIdForProgress').value;
+                const progress = document.getElementById('taskProgressOnly').value;
                 
-                if (title.trim() !== '') {
-                    updateTask(id, title.trim(), dueDate, priority, description);
-                    closeEditModal();
-                }
+                updateTaskProgress(taskId, progress);
+                closeProgressModal();
             });
         }
         
-        // Fill form with task data
-        document.getElementById('editTaskId').value = taskToEdit.id;
-        document.getElementById('editTaskTitle').value = taskToEdit.title;
-        document.getElementById('editTaskDescription').value = taskToEdit.description || '';
-        document.getElementById('editTaskPriority').value = taskToEdit.priority || 'Normal';
+        // Set task title display
+        document.querySelector('#progressModal .task-title-display').textContent = taskToEdit.title;
         
-        // Format date for datetime-local input
-        if (taskToEdit.dueDate) {
-            const dueDate = new Date(taskToEdit.dueDate);
-            const formattedDate = dueDate.toISOString().slice(0, 16);
-            document.getElementById('editTaskDueDate').value = formattedDate;
+        // Fill form with task data
+        document.getElementById('taskIdForProgress').value = taskToEdit.id;
+        
+        // Set progress slider value and display
+        const progressValue = taskToEdit.progress || 0;
+        const progressSlider = document.getElementById('taskProgressOnly');
+        progressSlider.value = progressValue;
+        document.getElementById('progressOnlyValue').textContent = progressValue;
+        
+        // Update progress preview
+        const preview = document.getElementById('progressOnlyPreview');
+        preview.style.width = progressValue + '%';
+        
+        // Update preview class based on value
+        preview.className = 'progress-fill';
+        if (progressValue >= 70) {
+            preview.classList.add('progress-high');
+        } else if (progressValue >= 30) {
+            preview.classList.add('progress-medium');
+        } else {
+            preview.classList.add('progress-low');
         }
         
         // Display the modal
-        document.getElementById('editTaskModal').style.display = 'block';
+        document.getElementById('progressModal').style.display = 'block';
     }
 }
 
-// Close edit task modal
-function closeEditModal() {
-    const modal = document.getElementById('editTaskModal');
+// Close progress modal
+function closeProgressModal() {
+    const modal = document.getElementById('progressModal');
     if (modal) {
         modal.style.display = 'none';
     }
 }
 
-// Update task in storage
-function updateTask(taskId, title, dueDate, priority, description) {
+// Update task progress only
+function updateTaskProgress(taskId, progress) {
     // Get tasks from storage
     const savedTasks = localStorage.getItem('tasks');
     const tasks = savedTasks ? JSON.parse(savedTasks) : [];
     
-    // Update the task
+    // Update the task progress
     const updatedTasks = tasks.map(task => {
         if (task.id === taskId) {
             return { 
                 ...task, 
-                title: title,
-                description: description || '',
-                dueDate: dueDate || task.dueDate,
-                priority: priority || task.priority
+                progress: progress
             };
         }
         return task;
@@ -423,6 +461,20 @@ function showAddTaskModal() {
                                     <option value="Urgent">High</option>
                                 </select>
                             </div>
+                            <div class="form-group progress-section">
+                                <label for="taskProgress">
+                                    <span class="progress-label">Task Progress:</span>
+                                    <span id="addProgressValue" class="progress-value">0</span>%
+                                </label>
+                                <div class="progress-control">
+                                    <input type="range" id="taskProgress" min="0" max="100" value="0" class="progress-slider">
+                                    <div class="progress-preview">
+                                        <div class="progress-bar">
+                                            <div id="addProgressPreview" class="progress-fill progress-low" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <label for="taskDueDate">Due Date</label>
                                 <input type="datetime-local" id="taskDueDate">
@@ -445,16 +497,38 @@ function showAddTaskModal() {
         // Add event listeners for modal
         document.querySelector('.close-modal').addEventListener('click', closeTaskModal);
         document.getElementById('cancelTaskBtn').addEventListener('click', closeTaskModal);
+        
+        // Add event listener for progress slider
+        document.getElementById('taskProgress').addEventListener('input', function() {
+            const progressValue = this.value;
+            document.getElementById('addProgressValue').textContent = progressValue;
+            
+            // Update preview
+            const preview = document.getElementById('addProgressPreview');
+            preview.style.width = progressValue + '%';
+            
+            // Update preview class based on value
+            preview.className = 'progress-fill';
+            if (progressValue >= 70) {
+                preview.classList.add('progress-high');
+            } else if (progressValue >= 30) {
+                preview.classList.add('progress-medium');
+            } else {
+                preview.classList.add('progress-low');
+            }
+        });
+        
         document.getElementById('addTaskForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const title = document.getElementById('taskTitle').value;
             const description = document.getElementById('taskDescription').value;
             const priority = document.getElementById('taskPriority').value;
+            const progress = document.getElementById('taskProgress').value;
             const dueDate = document.getElementById('taskDueDate').value;
             
             if (title.trim() !== '') {
-                addNewTask(title.trim(), dueDate, priority, description);
+                addNewTask(title.trim(), dueDate, priority, description, progress);
                 closeTaskModal();
             }
         });
@@ -462,6 +536,13 @@ function showAddTaskModal() {
     
     // Display the modal
     document.getElementById('addTaskModal').style.display = 'block';
+    
+    // Reset preview
+    const preview = document.getElementById('addProgressPreview');
+    if (preview) {
+        preview.style.width = '0%';
+        preview.className = 'progress-fill progress-low';
+    }
 }
 
 // Close task modal
@@ -475,7 +556,7 @@ function closeTaskModal() {
 }
 
 // Add new task to the list and storage
-function addNewTask(title, dueDate, priority, description) {
+function addNewTask(title, dueDate, priority, description, progress) {
     // Get tasks from storage
     const savedTasks = localStorage.getItem('tasks');
     const tasks = savedTasks ? JSON.parse(savedTasks) : [];
@@ -488,6 +569,7 @@ function addNewTask(title, dueDate, priority, description) {
         dueDate: dueDate || new Date().toISOString(),
         priority: priority || 'Normal',
         completed: false,
+        progress: progress || 0, // Initial progress is 0%
         tags: ['New']
     };
     
