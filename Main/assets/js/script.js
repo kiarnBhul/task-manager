@@ -34,10 +34,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle resize
     window.addEventListener('resize', handleSmallScreens);
 
-    // Add Task Button
+    // Add Task Button (navigation)
     const addTaskBtn = document.getElementById('addTaskBtn');
     if (addTaskBtn) {
         addTaskBtn.addEventListener('click', function() {
+            showAddTaskModal();
+        });
+    }
+    
+    // Add Task Button (in task list)
+    const addTaskButton = document.querySelector('.btn-add-task');
+    if (addTaskButton) {
+        addTaskButton.addEventListener('click', function() {
             showAddTaskModal();
         });
     }
@@ -112,6 +120,7 @@ function createTaskElement(task) {
         </div>
         <div class="task-content">
             <h3 class="task-title">${task.title}</h3>
+            ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
             <div class="task-meta">
                 <span>Due: ${formatDate(task.dueDate)}</span>
                 <div class="task-tags">
@@ -238,33 +247,123 @@ function editTask(taskId) {
     const taskToEdit = tasks.find(task => task.id === taskId);
     
     if (taskToEdit) {
-        // In a real app, you would show a modal with form fields
-        // This is simplified for demo purposes
-        const newTitle = prompt('Edit task title:', taskToEdit.title);
-        if (newTitle && newTitle.trim() !== '') {
-            const newDueDate = prompt('Edit due date (YYYY-MM-DD HH:MM):', taskToEdit.dueDate);
-            const newPriority = prompt('Edit priority:', taskToEdit.priority);
+        // Create edit modal HTML if it doesn't exist
+        if (!document.getElementById('editTaskModal')) {
+            const modalHTML = `
+                <div id="editTaskModal" class="task-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Edit Task</h2>
+                            <span class="close-modal">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editTaskForm">
+                                <input type="hidden" id="editTaskId">
+                                <div class="form-group">
+                                    <label for="editTaskTitle">Task Title</label>
+                                    <input type="text" id="editTaskTitle" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editTaskDescription">Description</label>
+                                    <textarea id="editTaskDescription"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editTaskPriority">Priority</label>
+                                    <select id="editTaskPriority">
+                                        <option value="Normal">Low</option>
+                                        <option value="Important">Medium</option>
+                                        <option value="Urgent">High</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editTaskDueDate">Due Date</label>
+                                    <input type="datetime-local" id="editTaskDueDate">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="button" id="cancelEditBtn" class="btn-cancel">Cancel</button>
+                                    <button type="submit" class="btn-primary">Update Task</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            // Update the task
-            const updatedTasks = tasks.map(task => {
-                if (task.id === taskId) {
-                    return { 
-                        ...task, 
-                        title: newTitle.trim(),
-                        dueDate: newDueDate || task.dueDate,
-                        priority: newPriority || task.priority
-                    };
+            // Append modal to body
+            const modalContainer = document.createElement('div');
+            modalContainer.innerHTML = modalHTML;
+            document.body.appendChild(modalContainer.firstElementChild);
+            
+            // Add event listeners for modal
+            document.querySelector('#editTaskModal .close-modal').addEventListener('click', closeEditModal);
+            document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+            document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('editTaskId').value;
+                const title = document.getElementById('editTaskTitle').value;
+                const description = document.getElementById('editTaskDescription').value;
+                const priority = document.getElementById('editTaskPriority').value;
+                const dueDate = document.getElementById('editTaskDueDate').value;
+                
+                if (title.trim() !== '') {
+                    updateTask(id, title.trim(), dueDate, priority, description);
+                    closeEditModal();
                 }
-                return task;
             });
-            
-            // Save back to storage
-            localStorage.setItem('tasks', JSON.stringify(updatedTasks));
-            
-            // Re-render tasks
-            renderTasks(updatedTasks);
         }
+        
+        // Fill form with task data
+        document.getElementById('editTaskId').value = taskToEdit.id;
+        document.getElementById('editTaskTitle').value = taskToEdit.title;
+        document.getElementById('editTaskDescription').value = taskToEdit.description || '';
+        document.getElementById('editTaskPriority').value = taskToEdit.priority || 'Normal';
+        
+        // Format date for datetime-local input
+        if (taskToEdit.dueDate) {
+            const dueDate = new Date(taskToEdit.dueDate);
+            const formattedDate = dueDate.toISOString().slice(0, 16);
+            document.getElementById('editTaskDueDate').value = formattedDate;
+        }
+        
+        // Display the modal
+        document.getElementById('editTaskModal').style.display = 'block';
     }
+}
+
+// Close edit task modal
+function closeEditModal() {
+    const modal = document.getElementById('editTaskModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Update task in storage
+function updateTask(taskId, title, dueDate, priority, description) {
+    // Get tasks from storage
+    const savedTasks = localStorage.getItem('tasks');
+    const tasks = savedTasks ? JSON.parse(savedTasks) : [];
+    
+    // Update the task
+    const updatedTasks = tasks.map(task => {
+        if (task.id === taskId) {
+            return { 
+                ...task, 
+                title: title,
+                description: description || '',
+                dueDate: dueDate || task.dueDate,
+                priority: priority || task.priority
+            };
+        }
+        return task;
+    });
+    
+    // Save back to storage
+    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    
+    // Re-render tasks
+    renderTasks(updatedTasks);
 }
 
 // Delete a task
@@ -280,20 +379,88 @@ function deleteTask(taskId) {
     localStorage.setItem('tasks', JSON.stringify(updatedTasks));
 }
 
-// Show add task modal (simplified for demo)
+// Show add task modal
 function showAddTaskModal() {
-    const taskTitle = prompt('Enter task title:');
-    if (taskTitle && taskTitle.trim() !== '') {
-        // Simplified date input (in real app would use a date picker)
-        const dueDate = prompt('Enter due date (YYYY-MM-DD HH:MM):');
-        const taskPriority = prompt('Enter priority (e.g., Urgent, Important, Normal):');
+    // Create modal HTML if it doesn't exist
+    if (!document.getElementById('addTaskModal')) {
+        const modalHTML = `
+            <div id="addTaskModal" class="task-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Add New Task</h2>
+                        <span class="close-modal">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addTaskForm">
+                            <div class="form-group">
+                                <label for="taskTitle">Task Title</label>
+                                <input type="text" id="taskTitle" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="taskDescription">Description</label>
+                                <textarea id="taskDescription"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="taskPriority">Priority</label>
+                                <select id="taskPriority">
+                                    <option value="Normal">Low</option>
+                                    <option value="Important">Medium</option>
+                                    <option value="Urgent">High</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="taskDueDate">Due Date</label>
+                                <input type="datetime-local" id="taskDueDate">
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="cancelTaskBtn" class="btn-cancel">Cancel</button>
+                                <button type="submit" class="btn-primary">Add Task</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
         
-        addNewTask(taskTitle.trim(), dueDate, taskPriority);
+        // Append modal to body
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHTML;
+        document.body.appendChild(modalContainer.firstElementChild);
+        
+        // Add event listeners for modal
+        document.querySelector('.close-modal').addEventListener('click', closeTaskModal);
+        document.getElementById('cancelTaskBtn').addEventListener('click', closeTaskModal);
+        document.getElementById('addTaskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('taskTitle').value;
+            const description = document.getElementById('taskDescription').value;
+            const priority = document.getElementById('taskPriority').value;
+            const dueDate = document.getElementById('taskDueDate').value;
+            
+            if (title.trim() !== '') {
+                addNewTask(title.trim(), dueDate, priority, description);
+                closeTaskModal();
+            }
+        });
+    }
+    
+    // Display the modal
+    document.getElementById('addTaskModal').style.display = 'block';
+}
+
+// Close task modal
+function closeTaskModal() {
+    const modal = document.getElementById('addTaskModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // Reset form
+        document.getElementById('addTaskForm').reset();
     }
 }
 
 // Add new task to the list and storage
-function addNewTask(title, dueDate, priority) {
+function addNewTask(title, dueDate, priority, description) {
     // Get tasks from storage
     const savedTasks = localStorage.getItem('tasks');
     const tasks = savedTasks ? JSON.parse(savedTasks) : [];
@@ -302,6 +469,7 @@ function addNewTask(title, dueDate, priority) {
     const newTask = {
         id: Date.now().toString(), // Simple unique ID
         title: title,
+        description: description || '',
         dueDate: dueDate || new Date().toISOString(),
         priority: priority || 'Normal',
         completed: false,
