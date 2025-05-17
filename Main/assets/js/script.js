@@ -1,32 +1,10 @@
 // Theme Switcher and UI Functionality
 document.addEventListener('DOMContentLoaded', function() {
+    // Set up animations for modals
+    setupModalAnimations();
+    
     // Delete specific tasks (temporary code)
     deleteTasksByTitle(["Excel sheet", "Presentation on AI"]);
-    
-    // Theme toggle
-    const themeSwitch = document.getElementById('themeSwitch');
-    
-    themeSwitch.addEventListener('change', function() {
-        if(this.checked) {
-            document.documentElement.style.setProperty('--background', '#1a1c23');
-            document.documentElement.style.setProperty('--card-bg', '#242731');
-            document.documentElement.style.setProperty('--text-primary', '#ffffff');
-            document.documentElement.style.setProperty('--text-secondary', '#a0a0a0');
-        } else {
-            document.documentElement.style.setProperty('--background', '#f8f9fa');
-            document.documentElement.style.setProperty('--card-bg', '#ffffff');
-            document.documentElement.style.setProperty('--text-primary', '#212529');
-            document.documentElement.style.setProperty('--text-secondary', '#6c757d');
-        }
-    });
-    
-    // Sidebar toggle
-    const menuToggle = document.getElementById('menuToggle');
-    if (menuToggle) {
-        menuToggle.addEventListener('click', function() {
-            document.body.classList.toggle('sidebar-collapsed');
-        });
-    }
     
     // Handle small screens initially
     handleSmallScreens();
@@ -64,7 +42,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add priority filter UI
     addPriorityFilter();
+
+    // Setup advanced filters
+    setupAdvancedFilters();
+
+    // Create task summary after initialization
+    setTimeout(createTaskSummary, 500);
 });
+
+// Setup animations for modals
+function setupModalAnimations() {
+    // Prepare all modals for animations
+    const modals = document.querySelectorAll('.task-modal');
+    modals.forEach(modal => {
+        // Ensure transitions work properly when modal is shown
+        modal.addEventListener('transitionend', function(e) {
+            // When modal finishes fading out, hide it completely
+            if (e.propertyName === 'opacity' && !modal.classList.contains('show')) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+}
 
 // Handle small screens
 function handleSmallScreens() {
@@ -147,6 +146,9 @@ function renderTasks(tasks) {
     // Initialize the task interactivity
     initTaskCheckboxes();
     initTaskActionButtons();
+
+    // Update task summary
+    updateTaskSummary();
 }
 
 // Create task element
@@ -331,8 +333,14 @@ function showDeleteConfirmationModal(taskId, taskTitle) {
     // Set the task name in the modal
     taskNameSpan.textContent = taskTitle;
     
-    // Show the modal
+    // Show the modal with animation
     modal.style.display = 'block';
+    
+    // Trigger reflow to enable smooth animation
+    void modal.offsetWidth;
+    
+    // Add show class for animation
+    modal.classList.add('show');
     
     // Set up the confirm button action
     confirmBtn.onclick = function() {
@@ -347,8 +355,8 @@ function showDeleteConfirmationModal(taskId, taskTitle) {
         // Update task count stats
         updateTaskStats();
         
-        // Close the modal
-        modal.style.display = 'none';
+        // Close the modal with animation
+        closeModalWithAnimation(modal);
         
         // Show success toast
         showToast('success', `Task "${taskTitle}" deleted successfully`);
@@ -356,20 +364,31 @@ function showDeleteConfirmationModal(taskId, taskTitle) {
     
     // Close modal on cancel button click
     cancelBtn.onclick = function() {
-        modal.style.display = 'none';
+        closeModalWithAnimation(modal);
     };
     
     // Close modal on X button click
     closeModalBtn.onclick = function() {
-        modal.style.display = 'none';
+        closeModalWithAnimation(modal);
     };
     
     // Close modal when clicking outside the modal content
     window.onclick = function(event) {
         if (event.target === modal) {
-            modal.style.display = 'none';
+            closeModalWithAnimation(modal);
         }
     };
+}
+
+// Helper function to close modal with animation
+function closeModalWithAnimation(modal) {
+    // Remove show class to trigger animation
+    modal.classList.remove('show');
+    
+    // Wait for animation to complete before hiding
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
 }
 
 // Show toast notification
@@ -429,7 +448,7 @@ function showToast(type, message) {
     }, 4000);
 }
 
-// Edit a task
+// Edit a task with enhanced animation
 function editTask(taskId) {
     // Get tasks from storage
     const savedTasks = localStorage.getItem('tasks');
@@ -452,10 +471,10 @@ function editTask(taskId) {
                             <form id="progressForm">
                                 <input type="hidden" id="taskIdForProgress">
                                 <div class="task-title-display"></div>
-                                <div class="form-group progress-section">
+                                <div class="progress-section">
                                     <label for="taskProgressOnly">
-                                        <span class="progress-label">Task Progress:</span>
-                                        <span id="progressOnlyValue" class="progress-value">0</span>%
+                                        <span class="progress-label">Task Progress</span>
+                                        <span id="progressOnlyValue" class="progress-value">0</span>
                                     </label>
                                     <div class="progress-control">
                                         <input type="range" id="taskProgressOnly" min="0" max="100" value="0" class="progress-slider">
@@ -513,6 +532,9 @@ function editTask(taskId) {
                 
                 updateTaskProgress(taskId, progress);
                 closeProgressModal();
+                
+                // Show success notification
+                showToast('success', `Task progress updated to ${progress}%`);
             });
         }
         
@@ -542,8 +564,20 @@ function editTask(taskId) {
             preview.classList.add('progress-low');
         }
         
-        // Display the modal
-        document.getElementById('progressModal').style.display = 'block';
+        // Show modal with enhanced animation
+        const modal = document.getElementById('progressModal');
+        modal.style.display = 'block';
+        
+        // Force reflow to enable smooth animation
+        void modal.offsetWidth;
+        
+        // Add show class for animation
+        modal.classList.add('show');
+        
+        // Focus on the slider after modal appears
+        setTimeout(() => {
+            progressSlider.focus();
+        }, 300);
     }
 }
 
@@ -551,7 +585,7 @@ function editTask(taskId) {
 function closeProgressModal() {
     const modal = document.getElementById('progressModal');
     if (modal) {
-        modal.style.display = 'none';
+        closeModalWithAnimation(modal);
     }
 }
 
@@ -676,8 +710,13 @@ function showAddTaskModal() {
         document.body.appendChild(modalContainer.firstElementChild);
         
         // Add event listeners for modal
-        document.querySelector('.close-modal').addEventListener('click', closeTaskModal);
-        document.getElementById('cancelTaskBtn').addEventListener('click', closeTaskModal);
+        document.querySelector('.close-modal').addEventListener('click', function() {
+            closeModalWithAnimation(document.getElementById('addTaskModal'));
+        });
+        
+        document.getElementById('cancelTaskBtn').addEventListener('click', function() {
+            closeModalWithAnimation(document.getElementById('addTaskModal'));
+        });
         
         // Add event listener for progress slider
         document.getElementById('taskProgress').addEventListener('input', function() {
@@ -715,8 +754,16 @@ function showAddTaskModal() {
         });
     }
     
+    const modal = document.getElementById('addTaskModal');
+    
     // Display the modal
-    document.getElementById('addTaskModal').style.display = 'block';
+    modal.style.display = 'block';
+    
+    // Trigger reflow to enable smooth animation
+    void modal.offsetWidth;
+    
+    // Add show class for animation
+    modal.classList.add('show');
     
     // Reset preview
     const preview = document.getElementById('addProgressPreview');
@@ -730,9 +777,12 @@ function showAddTaskModal() {
 function closeTaskModal() {
     const modal = document.getElementById('addTaskModal');
     if (modal) {
-        modal.style.display = 'none';
-        // Reset form
-        document.getElementById('addTaskForm').reset();
+        closeModalWithAnimation(modal);
+        
+        // Reset form after animation completes
+        setTimeout(() => {
+            document.getElementById('addTaskForm').reset();
+        }, 300);
     }
 }
 
@@ -947,12 +997,29 @@ function initTaskCategoryNavigation() {
         });
     }
 
-    // Add click events to stats cards
+    // Add click events and enhanced hover effects to stats cards
     const statCards = document.querySelectorAll('.stat-card');
     statCards.forEach((card, index) => {
         card.style.cursor = 'pointer';
         
+        // Add pulse effect on hover
+        card.addEventListener('mouseenter', function() {
+            this.querySelector('.icon').style.transform = 'scale(1.2) rotate(5deg)';
+            this.querySelector('.stat-data h3').style.transform = 'scale(1.1)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.querySelector('.icon').style.transform = '';
+            this.querySelector('.stat-data h3').style.transform = '';
+        });
+        
         card.addEventListener('click', function() {
+            // Add click effect
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 200);
+            
             let status;
             
             // Map index to status
@@ -1084,4 +1151,404 @@ function updateTask(taskId, title, dueDate, priority, description, progress) {
     
     // Update task stats
     updateTaskStats();
-} 
+}
+
+// Add advanced filtering system
+function setupAdvancedFilters() {
+    // Create the advanced filter UI if it doesn't exist
+    if (!document.querySelector('.advanced-filters')) {
+        const filterContainer = document.querySelector('.search-container');
+        if (filterContainer) {
+            const filtersHTML = `
+                <div class="advanced-filters">
+                    <div class="filter-toggle">
+                        <button class="filter-toggle-btn">
+                            <i class="fas fa-filter"></i> Filters <span class="active-filters-badge">0</span>
+                        </button>
+                    </div>
+                    <div class="filters-panel">
+                        <div class="filter-group">
+                            <h3>Priority</h3>
+                            <div class="filter-options">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="priority" value="Normal">
+                                    <span class="checkbox-label">Low</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="priority" value="Important">
+                                    <span class="checkbox-label">Medium</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="priority" value="Urgent">
+                                    <span class="checkbox-label">High</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <h3>Progress</h3>
+                            <div class="filter-options">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="progress" value="0-30">
+                                    <span class="checkbox-label">Just Started (0-30%)</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="progress" value="31-70">
+                                    <span class="checkbox-label">In Progress (31-70%)</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="progress" value="71-99">
+                                    <span class="checkbox-label">Almost Done (71-99%)</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="progress" value="100">
+                                    <span class="checkbox-label">Completed (100%)</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <h3>Due Date</h3>
+                            <div class="filter-options">
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="dueDate" value="today">
+                                    <span class="checkbox-label">Due Today</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="dueDate" value="tomorrow">
+                                    <span class="checkbox-label">Due Tomorrow</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="dueDate" value="week">
+                                    <span class="checkbox-label">Due This Week</span>
+                                </label>
+                                <label class="filter-checkbox">
+                                    <input type="checkbox" data-filter="dueDate" value="overdue">
+                                    <span class="checkbox-label">Overdue</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="filter-actions">
+                            <button id="clearFilters" class="btn-clear-filters">Clear All Filters</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert after the search bar
+            const searchBar = filterContainer.querySelector('.search-bar');
+            if (searchBar) {
+                const filtersElement = document.createElement('div');
+                filtersElement.innerHTML = filtersHTML;
+                searchBar.after(filtersElement.firstElementChild);
+                
+                // Add event listeners
+                initAdvancedFilterEvents();
+            }
+        }
+    }
+}
+
+// Initialize events for the advanced filters
+function initAdvancedFilterEvents() {
+    // Toggle filters panel visibility
+    const filterToggle = document.querySelector('.filter-toggle-btn');
+    const filtersPanel = document.querySelector('.filters-panel');
+    
+    if (filterToggle && filtersPanel) {
+        filterToggle.addEventListener('click', function() {
+            filtersPanel.classList.toggle('active');
+            filterToggle.classList.toggle('active');
+        });
+    }
+    
+    // Handle filter changes
+    const filterCheckboxes = document.querySelectorAll('.filter-checkbox input');
+    filterCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            applyAdvancedFilters();
+        });
+    });
+    
+    // Clear all filters
+    const clearFilterBtn = document.getElementById('clearFilters');
+    if (clearFilterBtn) {
+        clearFilterBtn.addEventListener('click', function() {
+            // Uncheck all checkboxes
+            filterCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Apply filters (which will show all tasks since no filters are active)
+            applyAdvancedFilters();
+            
+            // Hide the filters panel
+            filtersPanel.classList.remove('active');
+            filterToggle.classList.remove('active');
+        });
+    }
+}
+
+// Apply all selected filters
+function applyAdvancedFilters() {
+    // Get all tasks
+    const savedTasks = localStorage.getItem('tasks');
+    const allTasks = savedTasks ? JSON.parse(savedTasks) : [];
+    
+    // Get current search input value
+    const searchValue = document.querySelector('.search-container input')?.value.toLowerCase().trim() || '';
+    
+    // Get selected filters
+    const selectedPriorities = Array.from(document.querySelectorAll('input[data-filter="priority"]:checked')).map(el => el.value);
+    const selectedProgress = Array.from(document.querySelectorAll('input[data-filter="progress"]:checked')).map(el => el.value);
+    const selectedDueDates = Array.from(document.querySelectorAll('input[data-filter="dueDate"]:checked')).map(el => el.value);
+    
+    // Count active filters and update badge
+    const activeFiltersCount = selectedPriorities.length + selectedProgress.length + selectedDueDates.length;
+    document.querySelector('.active-filters-badge').textContent = activeFiltersCount;
+    
+    if (activeFiltersCount > 0) {
+        document.querySelector('.filter-toggle-btn').classList.add('has-active-filters');
+    } else {
+        document.querySelector('.filter-toggle-btn').classList.remove('has-active-filters');
+    }
+    
+    // Filter tasks based on selected criteria
+    const filteredTasks = allTasks.filter(task => {
+        // Apply search filter
+        if (searchValue && !(
+            task.title.toLowerCase().includes(searchValue) || 
+            (task.description && task.description.toLowerCase().includes(searchValue))
+        )) {
+            return false;
+        }
+        
+        // Apply priority filter
+        if (selectedPriorities.length > 0 && !selectedPriorities.includes(task.priority)) {
+            return false;
+        }
+        
+        // Apply progress filter
+        if (selectedProgress.length > 0) {
+            const progress = task.progress || 0;
+            const progressMatch = selectedProgress.some(range => {
+                if (range === '100' && progress === 100) return true;
+                if (range === '0-30' && progress >= 0 && progress <= 30) return true;
+                if (range === '31-70' && progress >= 31 && progress <= 70) return true;
+                if (range === '71-99' && progress >= 71 && progress <= 99) return true;
+                return false;
+            });
+            
+            if (!progressMatch) return false;
+        }
+        
+        // Apply due date filter
+        if (selectedDueDates.length > 0) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            const weekEnd = new Date(today);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+            
+            const dueDate = new Date(task.dueDate);
+            
+            const dueDateMatch = selectedDueDates.some(option => {
+                if (option === 'today' && dueDate.toDateString() === today.toDateString()) return true;
+                if (option === 'tomorrow' && dueDate.toDateString() === tomorrow.toDateString()) return true;
+                if (option === 'week' && dueDate >= today && dueDate <= weekEnd) return true;
+                if (option === 'overdue' && dueDate < today) return true;
+                return false;
+            });
+            
+            if (!dueDateMatch) return false;
+        }
+        
+        // If passed all filters
+        return true;
+    });
+    
+    // Display filtered tasks
+    renderTasks(filteredTasks);
+    
+    // Update filter results count
+    updateFilterResultsCount(filteredTasks.length, allTasks.length);
+}
+
+// Create visual task summary section
+function createTaskSummary() {
+    // Get the task data
+    const savedTasks = localStorage.getItem('tasks');
+    const tasks = savedTasks ? JSON.parse(savedTasks) : [];
+    
+    // Don't create summary if no tasks
+    if (tasks.length === 0) return;
+    
+    // Check if summary already exists
+    if (document.getElementById('taskSummarySection')) return;
+    
+    // Calculate task statistics
+    const tasksByPriority = {
+        'Normal': tasks.filter(t => t.priority === 'Normal').length,
+        'Important': tasks.filter(t => t.priority === 'Important').length,
+        'Urgent': tasks.filter(t => t.priority === 'Urgent').length
+    };
+    
+    // Calculate progress distribution
+    const progressDistribution = {
+        'Not Started (0%)': tasks.filter(t => t.progress === 0).length,
+        'Just Started (1-30%)': tasks.filter(t => t.progress > 0 && t.progress <= 30).length,
+        'In Progress (31-70%)': tasks.filter(t => t.progress > 30 && t.progress <= 70).length,
+        'Almost Done (71-99%)': tasks.filter(t => t.progress > 70 && t.progress < 100).length,
+        'Completed (100%)': tasks.filter(t => t.progress === 100).length
+    };
+    
+    // Calculate due date distribution
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    const dueDatesDistribution = {
+        'Overdue': tasks.filter(t => !t.completed && new Date(t.dueDate) < today).length,
+        'Due Today': tasks.filter(t => !t.completed && new Date(t.dueDate).toDateString() === today.toDateString()).length,
+        'Due Tomorrow': tasks.filter(t => !t.completed && new Date(t.dueDate).toDateString() === tomorrow.toDateString()).length,
+        'This Week': tasks.filter(t => !t.completed && new Date(t.dueDate) > tomorrow && new Date(t.dueDate) <= nextWeek).length,
+        'Later': tasks.filter(t => !t.completed && new Date(t.dueDate) > nextWeek).length
+    };
+    
+    // Create the summary section HTML
+    const summaryHTML = `
+        <div id="taskSummarySection" class="task-summary-section">
+            <div class="summary-header">
+                <h2>Task Analytics</h2>
+                <button class="toggle-summary-btn">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+            </div>
+            <div class="summary-content">
+                <div class="summary-card">
+                    <div class="summary-chart">
+                        <div class="chart-title">Tasks by Priority</div>
+                        <div class="donut-chart priority-chart">
+                            <div class="donut-segment" style="--percentage: ${calculatePercentage(tasksByPriority.Normal, tasks.length)}; --color: var(--info);">
+                                <span class="donut-label">Low</span>
+                            </div>
+                            <div class="donut-segment" style="--percentage: ${calculatePercentage(tasksByPriority.Important, tasks.length)}; --color: var(--warning);">
+                                <span class="donut-label">Medium</span>
+                            </div>
+                            <div class="donut-segment" style="--percentage: ${calculatePercentage(tasksByPriority.Urgent, tasks.length)}; --color: var(--danger);">
+                                <span class="donut-label">High</span>
+                            </div>
+                            <div class="donut-hole">
+                                <div class="donut-hole-text">${tasks.length}</div>
+                                <div class="donut-hole-subtext">Tasks</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: var(--info);"></span>
+                                <span class="legend-label">Low (${tasksByPriority.Normal})</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: var(--warning);"></span>
+                                <span class="legend-label">Medium (${tasksByPriority.Important})</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background-color: var(--danger);"></span>
+                                <span class="legend-label">High (${tasksByPriority.Urgent})</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-chart">
+                        <div class="chart-title">Tasks by Progress</div>
+                        <div class="bar-chart progress-chart">
+                            ${Object.entries(progressDistribution).map(([label, count]) => `
+                                <div class="bar-group">
+                                    <div class="bar-label">${label}</div>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" style="width: ${calculatePercentage(count, tasks.length)}%;">
+                                            <span class="bar-value">${count}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-chart">
+                        <div class="chart-title">Tasks by Due Date</div>
+                        <div class="timeline-chart">
+                            ${Object.entries(dueDatesDistribution).map(([label, count], index) => `
+                                <div class="timeline-item ${label.toLowerCase().replace(/\s+/g, '-')}">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <span class="timeline-label">${label}</span>
+                                        <span class="timeline-count">${count} task${count !== 1 ? 's' : ''}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert the summary section before the activity container
+    const activityContainer = document.querySelector('.activity-container');
+    if (activityContainer) {
+        const summaryElement = document.createElement('div');
+        summaryElement.innerHTML = summaryHTML;
+        activityContainer.before(summaryElement.firstElementChild);
+        
+        // Add event listener for toggle button
+        document.querySelector('.toggle-summary-btn').addEventListener('click', function() {
+            const summarySection = document.getElementById('taskSummarySection');
+            const icon = this.querySelector('i');
+            
+            if (summarySection.classList.contains('collapsed')) {
+                summarySection.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                summarySection.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        });
+    }
+}
+
+// Helper function to calculate percentage
+function calculatePercentage(value, total) {
+    return total > 0 ? Math.round((value / total) * 100) : 0;
+}
+
+// Update summary when tasks change
+function updateTaskSummary() {
+    // Remove existing summary
+    const existingSummary = document.getElementById('taskSummarySection');
+    if (existingSummary) {
+        existingSummary.remove();
+    }
+    
+    // Create fresh summary
+    createTaskSummary();
+}
+
+// Add summary update to relevant functions
+const originalRenderTasks = renderTasks;
+renderTasks = function(tasks) {
+    originalRenderTasks(tasks);
+    updateTaskSummary();
+}; 
