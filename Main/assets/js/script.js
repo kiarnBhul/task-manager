@@ -272,11 +272,11 @@ function updateTaskCompletionStatus(taskId, isCompleted) {
     const updatedTasks = tasks.map(task => {
         if (task.id === taskId) {
             // If marking as completed, set progress to 100%
-            const newProgress = isCompleted ? 100 : task.progress;
+            // If unchecking, reset progress to 0
             return { 
                 ...task, 
                 completed: isCompleted,
-                progress: isCompleted ? 100 : task.progress
+                progress: isCompleted ? 100 : 0
             };
         }
         return task;
