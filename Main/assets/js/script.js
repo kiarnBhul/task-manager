@@ -58,9 +58,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             const searchValue = this.value.toLowerCase().trim();
-            filterTasks(searchValue);
+            filterTasks(searchValue, getCurrentPriorityFilter());
         });
     }
+    
+    // Add priority filter UI
+    addPriorityFilter();
 });
 
 // Handle small screens
@@ -616,31 +619,111 @@ function updateTaskStats() {
     }
 }
 
-// Filter tasks based on search input
-function filterTasks(searchValue) {
-    // If no search value, show all tasks
-    if (!searchValue) {
-        const savedTasks = localStorage.getItem('tasks');
-        const tasks = savedTasks ? JSON.parse(savedTasks) : [];
-        renderTasks(tasks);
-        return;
+// Add priority filter UI
+function addPriorityFilter() {
+    // Create filter container if it doesn't exist
+    if (!document.querySelector('.priority-filter')) {
+        const filterHTML = `
+            <div class="priority-filter">
+                <label class="filter-label">Filter by Priority:</label>
+                <div class="filter-options">
+                    <button class="filter-option active" data-priority="all">All</button>
+                    <button class="filter-option" data-priority="Normal">Low</button>
+                    <button class="filter-option" data-priority="Important">Medium</button>
+                    <button class="filter-option" data-priority="Urgent">High</button>
+                </div>
+            </div>
+        `;
+        
+        // Find search container to append after it
+        const searchContainer = document.querySelector('.search-container');
+        if (searchContainer) {
+            searchContainer.insertAdjacentHTML('afterend', filterHTML);
+            
+            // Add event listeners to filter buttons
+            const filterButtons = document.querySelectorAll('.filter-option');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Apply filter
+                    const priority = this.dataset.priority;
+                    const searchValue = document.querySelector('.search-container input').value.toLowerCase().trim();
+                    filterTasks(searchValue, priority);
+                });
+            });
+        }
     }
-    
+}
+
+// Get current priority filter
+function getCurrentPriorityFilter() {
+    const activeFilterButton = document.querySelector('.filter-option.active');
+    return activeFilterButton ? activeFilterButton.dataset.priority : 'all';
+}
+
+// Filter tasks based on search input and priority
+function filterTasks(searchValue, priorityFilter) {
     // Get tasks from storage
     const savedTasks = localStorage.getItem('tasks');
     const tasks = savedTasks ? JSON.parse(savedTasks) : [];
     
-    // Filter tasks based on search value
+    // Filter tasks based on search value and priority
     const filteredTasks = tasks.filter(task => {
+        // Priority filter
+        const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter;
+        
+        // If no search value but priority filter doesn't match, exclude
+        if (!searchValue && !priorityMatch) {
+            return false;
+        }
+        
+        // If no search value but priority matches, include
+        if (!searchValue && priorityMatch) {
+            return true;
+        }
+        
+        // Search filter combined with priority filter
         const titleMatch = task.title.toLowerCase().includes(searchValue);
-        const priorityMatch = task.priority && task.priority.toLowerCase().includes(searchValue);
+        const descriptionMatch = task.description && task.description.toLowerCase().includes(searchValue);
         const tagMatch = task.tags && task.tags.some(tag => tag.toLowerCase().includes(searchValue));
         
-        return titleMatch || priorityMatch || tagMatch;
+        return (titleMatch || descriptionMatch || tagMatch) && priorityMatch;
     });
     
     // Render filtered tasks
     renderTasks(filteredTasks);
+    
+    // Update UI to show filter results count
+    updateFilterResultsCount(filteredTasks.length, tasks.length);
+}
+
+// Update filter results count
+function updateFilterResultsCount(filteredCount, totalCount) {
+    // Create or update filter results count element
+    let resultsCount = document.querySelector('.filter-results-count');
+    
+    if (!resultsCount) {
+        resultsCount = document.createElement('div');
+        resultsCount.className = 'filter-results-count';
+        
+        // Insert after filter options
+        const filterOptions = document.querySelector('.filter-options');
+        if (filterOptions) {
+            filterOptions.parentNode.insertBefore(resultsCount, filterOptions.nextSibling);
+        }
+    }
+    
+    // Update text
+    if (filteredCount === totalCount) {
+        resultsCount.textContent = `Showing all ${totalCount} tasks`;
+    } else {
+        resultsCount.textContent = `Showing ${filteredCount} of ${totalCount} tasks`;
+    }
 }
 
 // Delete tasks by title

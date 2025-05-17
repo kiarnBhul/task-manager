@@ -904,4 +904,69 @@ input:checked + .slider:before {
     margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Priority Filter Styles */
+.priority-filter {
+    margin: 15px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.filter-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-option {
+    padding: 6px 12px;
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-secondary);
+}
+
+.filter-option:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.filter-option.active {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.filter-option[data-priority="Normal"].active {
+    background-color: #2e7d32;
+    border-color: #2e7d32;
+}
+
+.filter-option[data-priority="Important"].active {
+    background-color: #f57c00;
+    border-color: #f57c00;
+}
+
+.filter-option[data-priority="Urgent"].active {
+    background-color: #c62828;
+    border-color: #c62828;
+}
+
+.filter-results-count {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
 } 
