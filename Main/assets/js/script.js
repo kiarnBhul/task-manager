@@ -114,6 +114,21 @@ function createTaskElement(task) {
     taskItem.className = 'task-item';
     taskItem.dataset.id = task.id;
     
+    // Define priority class based on value
+    let priorityClass = '';
+    let priorityLabel = '';
+    
+    if (task.priority === 'Normal') {
+        priorityClass = 'priority-low';
+        priorityLabel = 'Low';
+    } else if (task.priority === 'Important') {
+        priorityClass = 'priority-medium';
+        priorityLabel = 'Medium';
+    } else if (task.priority === 'Urgent') {
+        priorityClass = 'priority-high';
+        priorityLabel = 'High';
+    }
+    
     taskItem.innerHTML = `
         <div class="task-checkbox ${task.completed ? 'checked' : ''}">
             ${task.completed ? '<i class="fas fa-check"></i>' : ''}
@@ -123,8 +138,8 @@ function createTaskElement(task) {
             ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
             <div class="task-meta">
                 <span>Due: ${formatDate(task.dueDate)}</span>
+                <span class="priority-badge ${priorityClass}">${priorityLabel}</span>
                 <div class="task-tags">
-                    ${task.priority ? `<span class="tag">${task.priority}</span>` : ''}
                     ${task.tags ? task.tags.map(tag => `<span class="tag">${tag}</span>`).join('') : ''}
                 </div>
             </div>
