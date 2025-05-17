@@ -240,7 +240,9 @@ function initTaskCheckboxes() {
     taskCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('click', function() {
             this.classList.toggle('checked');
-            if(this.classList.contains('checked')) {
+            const isChecked = this.classList.contains('checked');
+            
+            if(isChecked) {
                 this.innerHTML = '<i class="fas fa-check"></i>';
             } else {
                 this.innerHTML = '';
@@ -249,7 +251,10 @@ function initTaskCheckboxes() {
             // Update task in storage
             const taskItem = this.closest('.task-item');
             const taskId = taskItem.dataset.id;
-            updateTaskCompletionStatus(taskId, this.classList.contains('checked'));
+            
+            // When checking the box, set progress to 100%
+            // When unchecking, set progress back to the previous value or 0
+            updateTaskCompletionStatus(taskId, isChecked);
             
             // Update task count stats
             updateTaskStats();
@@ -266,13 +271,22 @@ function updateTaskCompletionStatus(taskId, isCompleted) {
     // Find and update the task
     const updatedTasks = tasks.map(task => {
         if (task.id === taskId) {
-            return { ...task, completed: isCompleted };
+            // If marking as completed, set progress to 100%
+            const newProgress = isCompleted ? 100 : task.progress;
+            return { 
+                ...task, 
+                completed: isCompleted,
+                progress: isCompleted ? 100 : task.progress
+            };
         }
         return task;
     });
     
     // Save back to storage
     localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    
+    // Re-render tasks to show updated progress bars
+    renderTasks(updatedTasks);
 }
 
 // Initialize task action buttons
@@ -442,12 +456,19 @@ function updateTaskProgress(taskId, progress) {
     const savedTasks = localStorage.getItem('tasks');
     const tasks = savedTasks ? JSON.parse(savedTasks) : [];
     
-    // Update the task progress
+    // Convert progress to number to ensure proper comparison
+    const progressValue = parseInt(progress, 10);
+    
+    // Update the task progress and check if it should be marked as completed
     const updatedTasks = tasks.map(task => {
         if (task.id === taskId) {
+            // If progress is 100%, mark the task as completed
+            const isCompleted = progressValue >= 100 ? true : task.completed;
+            
             return { 
                 ...task, 
-                progress: progress
+                progress: progressValue,
+                completed: isCompleted
             };
         }
         return task;
@@ -458,6 +479,9 @@ function updateTaskProgress(taskId, progress) {
     
     // Re-render tasks
     renderTasks(updatedTasks);
+    
+    // Update task stats
+    updateTaskStats();
 }
 
 // Delete a task
@@ -602,6 +626,12 @@ function addNewTask(title, dueDate, priority, description, progress) {
     const savedTasks = localStorage.getItem('tasks');
     const tasks = savedTasks ? JSON.parse(savedTasks) : [];
     
+    // Convert progress to number to ensure proper comparison
+    const progressValue = parseInt(progress, 10) || 0;
+    
+    // Check if task should be marked as completed based on progress
+    const isCompleted = progressValue >= 100 ? true : false;
+    
     // Create new task object
     const newTask = {
         id: Date.now().toString(), // Simple unique ID
@@ -609,8 +639,8 @@ function addNewTask(title, dueDate, priority, description, progress) {
         description: description || '',
         dueDate: dueDate || new Date().toISOString(),
         priority: priority || 'Normal',
-        completed: false,
-        progress: progress || 0, // Initial progress is 0%
+        completed: isCompleted,
+        progress: progressValue,
         tags: ['New']
     };
     
@@ -897,4 +927,42 @@ function filterTasksByStatus(status) {
     
     // Update filter results count
     updateFilterResultsCount(filteredTasks.length, tasks.length);
+}
+
+// Update task in storage
+function updateTask(taskId, title, dueDate, priority, description, progress) {
+    // Get tasks from storage
+    const savedTasks = localStorage.getItem('tasks');
+    const tasks = savedTasks ? JSON.parse(savedTasks) : [];
+    
+    // Convert progress to number to ensure proper comparison
+    const progressValue = parseInt(progress, 10);
+    
+    // Update the task
+    const updatedTasks = tasks.map(task => {
+        if (task.id === taskId) {
+            // If progress is 100%, mark the task as completed
+            const isCompleted = progressValue >= 100 ? true : task.completed;
+            
+            return { 
+                ...task, 
+                title: title,
+                description: description || '',
+                dueDate: dueDate || task.dueDate,
+                priority: priority || task.priority,
+                progress: progressValue,
+                completed: isCompleted
+            };
+        }
+        return task;
+    });
+    
+    // Save back to storage
+    localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    
+    // Re-render tasks
+    renderTasks(updatedTasks);
+    
+    // Update task stats
+    updateTaskStats();
 } 
